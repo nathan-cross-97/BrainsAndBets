@@ -28,6 +28,7 @@ To play with people who are not on your Wi-Fi, deploy this folder to any Node ho
 - **Winner:** the closest guess without going over. If several people wrote it, every space holding it pays and each of them gets the bonus.
 - **Bonus:** whoever wrote the winning guess gets chips equal to the round number (1 to 7). If every guess is too high, only **All too high** pays and there is no bonus.
 - Tokens still off the mat when betting closes go on your own guess.
+- **Skip:** while guessing is open, anyone can vote to skip the question. When more than half of the players have voted, it is swapped for a new one and the round restarts (2 of 2, 2 of 3, 3 of 4, 3 of 5, 4 of 6, 4 of 7).
 
 ## Customize
 

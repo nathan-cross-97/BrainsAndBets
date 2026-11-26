@@ -50,9 +50,11 @@
       S = data;
       offline = false;
       clockSkew = S.now - Date.now();
-      const key = S.phase + ':' + S.round;
+      const key = S.phase + ':' + S.qn;
       if (key !== L.key) {
         L.key = key;
+        const typing = document.getElementById('guess');
+        if (typing) typing.value = ''; // don't carry a half-typed guess into a new question
         L.editing = false;
         L.active = 0;
         L.bets = S.bets ? S.bets[S.me.id].map((b) => ({ ...b })) : null;
@@ -124,6 +126,12 @@
     return left.length ? `<p class="muted center">Waiting on ${left.map((p) => esc(p.name)).join(', ')}…</p>` : `<p class="muted center">Everyone has ${verb}.</p>`;
   }
 
+  function skipButton() {
+    const votes = S.players.filter((p) => p.skip).length;
+    const mine = me().skip;
+    return `<button class="btn ghost skip ${mine ? 'on' : ''}" data-act="skip">${mine ? 'Voted to skip' : 'Vote to skip'} · ${votes}/${S.skipNeeded}</button>`;
+  }
+
   function guessScreen() {
     const mine = S.me.guess;
     const body = mine === null || L.editing
@@ -135,9 +143,11 @@
       : `<div class="center"><p class="muted">Your guess</p><p class="huge">${fmt(mine, S.question)}</p>
           <button class="btn ghost" data-act="edit">Change it</button></div>${waitingList((p) => p.guessed, 'guessed')}`;
     return `${top('Guess')}<main class="phone">
+      ${S.skipped ? '<p class="notice">Question skipped by vote — here\'s a new one.</p>' : ''}
       <div class="card question">${esc(S.question.text)}</div>
       ${body}
-      <p class="hint">Closest <b>without going over</b> wins. Bonus this round: ${S.bonus} chips.</p>
+      ${skipButton()}
+      <p class="hint">Closest <b>without going over</b> wins. Bonus this round: ${S.bonus} chip${S.bonus === 1 ? "" : "s"}.</p>
     </main>`;
   }
 
@@ -266,6 +276,7 @@
     if (!el || el.disabled || !S) return;
     const act_ = el.dataset.act;
     if (act_ === 'edit') { L.editing = true; error = ''; return render(); }
+    if (act_ === 'skip') return act({ type: 'voteSkip', on: !me().skip });
     if (S.phase !== 'bet') return;
     const p = me();
     if (act_ === 'chip') {

@@ -107,6 +107,10 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-so
 .standings .chips { font-weight: 800; min-width: 2.4em; text-align: right; font-variant-numeric: tabular-nums; }
 .wintext { font-size: 1.8rem; letter-spacing: -.02em; margin: 4px 0; }
 
+.btn.skip { font-size: .95rem; padding: 12px; color: var(--muted); }
+.btn.skip.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.notice { text-align: center; font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 12px; padding: 10px 14px; }
+
 /* ---------- host / big screen ---------- */
 .hbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 28px; border-bottom: 1px solid var(--line); }
 .hmid { display: flex; align-items: center; gap: 8px; }

@@ -27,6 +27,8 @@ class Room {
     this.timer = null;
     this.settings = { timer: 30 };
     this.seq = 0;
+    this.qn = 0; // bumps every time a new question is shown
+    this.skipped = false;
     this.touched = Date.now();
     this.onChange = null;
   }
@@ -52,7 +54,7 @@ class Room {
       name = `${name} ${i}`;
     }
     const color = PLAYER_COLORS.find((c) => !this.players.some((p) => p.color === c));
-    const p = { id: token().slice(0, 8), secret: token(), name, color, chips: 0, conns: 0, guess: null, guessAt: 0, bets: null, locked: false };
+    const p = { id: token().slice(0, 8), secret: token(), name, color, chips: 0, conns: 0, guess: null, guessAt: 0, bets: null, locked: false, skip: false };
     this.players.push(p);
     this.changed();
     return p;
@@ -108,6 +110,7 @@ class Room {
   player(p, msg) {
     if (msg.type === 'guess') return this.submitGuess(p, msg.value);
     if (msg.type === 'bets') return this.setBets(p, msg.bets, msg.locked);
+    if (msg.type === 'voteSkip') return this.voteSkip(p, msg.on);
     throw new GameError('Unknown action.');
   }
 
@@ -125,6 +128,25 @@ class Room {
     this.beginGuess();
   }
 
+  // A strict majority of players (more than half) can swap the question for a fresh one.
+  get skipNeeded() { return Math.floor(this.players.length / 2) + 1; }
+
+  voteSkip(p, on) {
+    if (this.phase !== 'guess') throw new GameError('You can only skip while guessing is open.');
+    p.skip = !!on;
+    if (this.players.filter((q) => q.skip).length < this.skipNeeded) return this.changed();
+    let pool = this.questions.map((_, i) => i).filter((i) => !this.used.has(i));
+    if (!pool.length) { // bank exhausted: reuse anything not in this game
+      this.used = new Set(this.deck);
+      pool = this.questions.map((_, i) => i).filter((i) => !this.used.has(i));
+    }
+    if (!pool.length) throw new GameError('No more questions to swap in.');
+    const pick = pool[crypto.randomInt(pool.length)];
+    this.used.add(pick);
+    this.deck[this.round] = pick; // same round number, nothing changes hands
+    this.beginGuess(true);
+  }
+
   get question() { return this.questions[this.deck[this.round]]; }
 
   setTimer(fn) {
@@ -137,10 +159,12 @@ class Room {
     }
   }
 
-  beginGuess() {
+  beginGuess(skipped = false) {
     this.phase = 'guess';
+    this.qn++;
+    this.skipped = skipped;
     this.board = this.result = null;
-    for (const p of this.players) { p.guess = null; p.bets = null; p.locked = false; }
+    for (const p of this.players) { p.guess = null; p.bets = null; p.locked = false; p.skip = false; }
     this.setTimer(() => this.closeGuess());
     this.changed();
   }
@@ -230,6 +254,9 @@ class Room {
       code: this.code,
       phase: this.phase,
       round: this.round + 1,
+      qn: this.qn,
+      skipped: this.phase === 'guess' && this.skipped,
+      skipNeeded: this.skipNeeded,
       rounds: G.ROUNDS,
       bonus: G.BONUS[this.round],
       now: Date.now(),
@@ -237,7 +264,7 @@ class Room {
       settings: this.settings,
       players: this.players.map((p) => ({
         id: p.id, name: p.name, color: p.color, chips: p.chips,
-        connected: p.conns > 0, guessed: p.guess !== null, locked: p.locked,
+        connected: p.conns > 0, guessed: p.guess !== null, locked: p.locked, skip: p.skip,
       })),
       question: q ? { text: q.q, year: !!q.year } : null,
       board: mat ? this.board : null,

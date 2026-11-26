@@ -86,6 +86,7 @@
             <li>Bet both of your tokens — on any guess, on <b>All too high</b> (6:1), or on <b>Red</b>/<b>Black</b> (1:1).</li>
             <li>The closest guess <b>without going over</b> wins. Bets on it pay out, and whoever wrote it gets a bonus that grows each round.</li>
             <li>Stack chips you've won under a token to bet bigger. Tokens always come back; stacked chips are lost if the bet loses.</li>
+            <li>Don't like a question? Vote to skip it — if more than half the players agree, it's swapped for a new one.</li>
             <li>Most chips after 7 questions wins.</li>
           </ol>
         </details>
@@ -113,9 +114,11 @@
 
   function guess() {
     return `${header('Guessing')}<main class="hmain">
+      ${S.skipped ? '<p class="notice">Question skipped by vote — here\'s a new one.</p>' : ''}
       <div class="card hq">${esc(S.question.text)}</div>
       <p class="hhint">Type your guess on your phone. Closest <b>without going over</b> wins · Bonus this round: <b>${S.bonus}</b></p>
       ${status((p) => p.guessed)}
+      <p class="hhint">Skip votes: <b>${S.players.filter((p) => p.skip).length} of ${S.skipNeeded}</b> needed · vote on your phone</p>
       <div class="hactions">${errHTML()}<button class="btn ghost" data-act="skip">Close guessing</button></div>
     </main>`;
   }

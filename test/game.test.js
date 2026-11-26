@@ -133,6 +133,33 @@ test('room rules: joins, bad guesses, void rounds', () => {
   assert.equal(room.result.void, true);
 });
 
+test('vote to skip needs more than half the players', () => {
+  const { room, players: [a, b, c, d] } = newRoom(4);
+  room.host({ type: 'start' });
+  const first = room.question;
+  room.player(a, { type: 'guess', value: '5' });
+  room.player(a, { type: 'voteSkip', on: true });
+  room.player(b, { type: 'voteSkip', on: true });
+  assert.equal(room.question, first); // 2 of 4 is not a majority
+  assert.equal(room.view(c).skipNeeded, 3);
+  room.player(b, { type: 'voteSkip', on: false }); // votes can be withdrawn
+  room.player(c, { type: 'voteSkip', on: true });
+  assert.equal(room.question, first);
+  room.player(d, { type: 'voteSkip', on: true });
+  assert.notEqual(room.question, first);
+  assert.equal(room.phase, 'guess');
+  assert.equal(room.round, 0); // same round number
+  assert.equal(a.guess, null); // guesses reset for the new question
+  assert.ok(room.players.every((p) => !p.skip));
+  assert.equal(room.view(a).skipped, true);
+  assert.equal(new Set(room.deck).size, 7); // replacement is never a repeat
+  for (const p of [a, b, c, d]) room.player(p, { type: 'guess', value: '1' });
+  assert.throws(() => room.player(a, { type: 'voteSkip', on: true }), GameError); // not during betting
+  const two = newRoom(2).room;
+  assert.equal(two.skipNeeded, 2);
+  assert.equal(newRoom(7).room.skipNeeded, 4);
+});
+
 test('room caps at 7 players and needs 2 to start', () => {
   const { room } = newRoom(7);
   assert.throws(() => room.join('Eighth'), GameError);
@@ -142,7 +169,7 @@ test('room caps at 7 players and needs 2 to start', () => {
 
 test('every question has a sane numeric answer', () => {
   const qs = require('../src/questions.json');
-  assert.ok(qs.length >= 49);
+  assert.ok(qs.length >= 200);
   assert.equal(new Set(qs.map((q) => q.q)).size, qs.length);
   for (const q of qs) assert.ok(typeof q.q === 'string' && Number.isFinite(q.a) && q.a >= 0, q.q);
 });
